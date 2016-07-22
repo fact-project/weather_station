@@ -1,7 +1,5 @@
 #include "DHT.h"
-#include <pb.h>
-#include <pb_encode.h>
-#include <adcvalues.pb.h>
+#include <ArduinoJson.h>
 
 #define DHTPIN 9
 #define DHTTYPE DHT22 //DHT11, DHT21, DHT22
@@ -9,42 +7,47 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 
-float humidity
-float temperature
-unsigned long runtime;
+
+void send_float (float arg)
+{
+  // get access to the float as a byte-array:
+  byte * data = (byte *) &arg; 
+
+  // write the data to the serial
+  Serial.write (data, sizeof (arg));
+  Serial.println();
+}
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
+  //Serial.println("DHT22 - Test!");
 
   dht.begin();
-  while(!Serial){
-  }
 }
 
 void loop()
 {
-  humidity    = dht.readHumidity();     //Luftfeuchte auslesen
-  temperature = dht.readTemperature();  //Temperatur auslesen
-  runtime = millis();
+  float h = dht.readHumidity();     //Luftfeuchte auslesen
+  float t = dht.readTemperature();  //Temperatur auslesen
 
 
   // Prüfen ob eine gültige Zahl zurückgegeben wird. Wenn NaN (not a number) zurückgegeben wird, dann Fehler ausgeben.
-  if (isnan(temperature) || isnan(humidity))
+  if (isnan(t) || isnan(h))
   {
     Serial.println("DHT22 konnte nicht ausgelesen werden");
   }
   else
   {
-    SerialData message = {runtime, temperature, humidity};
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    root["humidity"] = h;
+    root["temperature"] = t;
+    root.printTo(Serial);
+//    Serial.write((const char *)&h, sizeof(float)/*4*/);
+//    Serial.write((const char *)&t, sizeof(float)/*4*/);   
+    Serial.println();
 
-    uint8_t buffer[32];
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-    pb_encode(&stream, SerialData_fields, &message);
-    for(int i=0; i < stream.bytes_written; i++){
-    Serial.write(buffer[i]);
-    }
-    Serial.write("\n");
+    
   }
-
 }
