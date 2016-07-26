@@ -2,8 +2,10 @@
 #include <ArduinoJson.h>
 
 //DHT22 Temp/Hum Sensor
-#define DHTPIN 9
+#define DHT0PIN 9
+#define DHT1PIN 11
 #define DHTTYPE DHT22 //DHT11, DHT21, DHT22
+
 
 //RG11 RainSensor in tipping bucket mode
 #define RG11_Pin 2
@@ -23,15 +25,18 @@ volatile unsigned long ContactTime;  // Timer to manage any contact bounce in in
 long lastCount;
 float totalRainfall;
 
-float h;
-float t;
+float hum0;
+float temp0;
+
+float hum1;
+float temp1;
 
 bool m152_rain;
 float wind_direction = 0;
 int wind_speed_value = 0;
 
-DHT dht(DHTPIN, DHTTYPE);
-
+DHT dht0(DHT0PIN, DHTTYPE);
+DHT dht1(DHT1PIN, DHTTYPE);
 
 
 
@@ -41,7 +46,8 @@ void setup()
   //Serial.println("DHT22 - Test!");
   //Serial.print("Bucket Size: "); Serial.print(Bucket_Size); Serial.println(" mm");
 
-  dht.begin();
+  dht0.begin();
+  dht1.begin();
 
   lastCount = 0;
   tipCount = 0;
@@ -62,8 +68,10 @@ void setup()
 void loop()
 {
   //Read DHT22
-  h = dht.readHumidity();     //Luftfeuchte auslesen
-  t = dht.readTemperature();  //Temperatur auslesen
+  hum0 = dht0.readHumidity();     //Luftfeuchte auslesen
+  temp0 = dht0.readTemperature();  //Temperatur auslesen
+  hum1 = dht1.readHumidity();     //Luftfeuchte auslesen
+  temp1 = dht1.readTemperature();  //Temperatur auslesen
 
   //READ RG11
   cli();         //Disable interrupts
@@ -88,30 +96,24 @@ void loop()
 
 
   // Prüfen ob eine gültige Zahl zurückgegeben wird. Wenn NaN (not a number) zurückgegeben wird, dann Fehler ausgeben.
-  if (isnan(t) || isnan(h))
-  {
-    Serial.println("DHT22 konnte nicht ausgelesen werden");
-  }
-  else
-  {
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    
-    root["humidity"]      = h;
-    root["temperature"]   = t;
-    root["tip_count"]     = tipCount;
-    root["tot_rainfall"]  = totalRainfall;
-    root["M152"]          = m152_rain;
-    root["wind_speed"]    = wind_speed_value;
-    root["wind_direction"]= wind_direction;
-    
-    root.printTo(Serial);
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  
+  root["humidity_0"]      = hum0;
+  root["temperature_0"]   = temp0;  
+  root["humidity_1"]      = hum1;
+  root["temperature_1"]   = temp1;  
+  
+  root["tip_count"]     = tipCount;
+  root["tot_rainfall"]  = totalRainfall;
+  root["M152"]          = m152_rain;
+  root["wind_speed"]    = wind_speed_value;
+  root["wind_direction"]= wind_direction;
+  
+  root.printTo(Serial);
 //    Serial.write((const char *)&h, sizeof(float)/*4*/);
 //    Serial.write((const char *)&t, sizeof(float)/*4*/);   
-    Serial.println();
-
-    
-  }
+  Serial.println();
 }
 
 // Interrrupt handler routine that is triggered when the rg-11 detects rain   
