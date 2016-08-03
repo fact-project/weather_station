@@ -27,24 +27,24 @@
 #define WIND_SPEED_MEASURE_TIME 10000 //ms, every 10s, should stay like this
 #define WIND_DIRECTION_PIN 0
 
-#define DATA_FREQ 2000 //ms
+#define DATA_FREQ 1000 //ms
 
 // Global variables ============================================================
 
 int cycles = 0;
 
-volatile unsigned long tipCount;     // bucket tip counter used in interrupt routine
-volatile unsigned long tipContactTime;  // Timer to manage any contact bounce in interrupt routine
+volatile unsigned long tipCounterRg1;     // bucket tip counter
+volatile unsigned long tipContactTimeRg1;  // Timer to manage any contact bounce in interrupt routine
 
-volatile unsigned long windCount;     // anemometer counter used in interrupt routine
+volatile unsigned long windCount;     // anemometer counter
 volatile unsigned long windContactTime;  // Timer to manage any contact bounce in interrupt routine
 
-volatile unsigned long m152Count;     // contact counter used in interrupt routine
+volatile unsigned long m152Counter;     // contact counter for interrupt routine
 volatile unsigned long m152ContactTime;  // Timer to manage any contact bounce in interrupt routine
 
 //Rain Sensor variables
-long lastCount;
-float totalRainfall;
+long lastCountRg1;
+float totalRainfallRg1;
 bool m152State = false;
 
 //Temperatur Sensor variables
@@ -71,73 +71,6 @@ int lastWindSpeedPinStatus = HIGH;
 DHT dht0(DHT0PIN, DHTTYPE);
 DHT dht1(DHT1PIN, DHTTYPE);
 
-void countM152PulseChange(byte changeKind) {
-  if ((millis() - m152ContactTime) > 5 && changeKind == 0) {  // debounce of sensor signal
-    m152Count++;
-    m152ContactTime = millis();
-    m152State = true;
-  }
-}
-
-PciListenerImp listener(M152_Pin, countM152PulseChange);
-
-// Interrupt Functions ========================================================
-
-// Interrrupt handler: rg-11 detects rain
-void rgisr ()   {
-
-   if ((millis() - tipContactTime) > 15 ) {  // debounce of sensor signal
-      tipCount++;
-      tipContactTime = millis();
-   }
-}
-// end of rg-11 rain detection interrupt handler
-
-// Interrrupt handler: routine that is triggered when the anemometer is rotating
-void windisr ()   {
-  if ((millis() - windContactTime) > 5 ) {  // debounce of sensor signal
-      windCount++;
-      windContactTime = millis();
-  }
-}
-// end of anemometer interrupt handler
-
-// Setup =======================================================================
-
-void setup()
-{
-  startupTime  = millis();
-  Serial.begin(9600);
-
-  //global constants
-  cycles = 0;
-  lastCount = 0;
-  tipCount = 0;
-  totalRainfall = 0;
-  windCount = 0;
-
-
-  //Temperature and Humidity Sensors
-  dht0.begin();
-  dht1.begin();
-
-  //Optical Rainsensor: RG11
-  pinMode(RG11_1_Pin, INPUT);   // set the digital input pin to input for the RG-11 Sensor
-  attachInterrupt(digitalPinToInterrupt(RG11_1_Pin), rgisr, FALLING);     // attach interrupt handler to input pin.
-  // we trigger the interrupt on the voltage falling from 5V to GND
-
-  //Wind Speed
-  pinMode(WIND_SPEED_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(WIND_SPEED_PIN), windisr, FALLING);     // attach interrupt handler to input pin.
-
-  sei();         //Enables interrupts
-
-  //Impedance Rainsensor
-  pinMode(M152_Pin, INPUT);
-  PciManager.registerListener(M152_Pin, &listener);
-  m152State = false;
-}
-
 void measureWindSpeed(int wind_measure_time)
 {
   cli();         //Disable interrupts
@@ -157,6 +90,72 @@ void measureWindSpeed(int wind_measure_time)
   return;
 }
 
+void countM152PulseChange(byte changeKind) {
+  if ((millis() - m152ContactTime) > 5 && changeKind == 0) {  // debounce of sensor signal
+    m152Counter++;
+    m152ContactTime = millis();
+    m152State = true;
+  }
+}
+
+PciListenerImp listener(M152_Pin, countM152PulseChange);
+
+// Interrupt Functions ========================================================
+
+// Interrrupt handler: rg-11 detects rain
+void countRg1Tips ()   {
+
+   if ((millis() - tipContactTimeRg1) > 15 ) {  // debounce of sensor signal
+      tipCounterRg1++;
+      tipContactTimeRg1 = millis();
+   }
+}
+// end of rg-11 rain detection interrupt handler
+
+// Interrrupt handler: routine that is triggered when the anemometer is rotating
+void countWindRotations ()   {
+  if ((millis() - windContactTime) > 5 ) {  // debounce of sensor signal
+      windCount++;
+      windContactTime = millis();
+  }
+}
+// end of anemometer interrupt handler
+
+// Setup =======================================================================
+
+void setup()
+{
+  startupTime  = millis();
+  Serial.begin(9600);
+
+  //global constants
+  cycles = 0;
+  lastCountRg1 = 0;
+  tipCounterRg1 = 0;
+  totalRainfallRg1 = 0;
+  windCount = 0;
+
+
+  //Temperature and Humidity Sensors
+  dht0.begin();
+  dht1.begin();
+
+  //Optical Rainsensor: RG11
+  pinMode(RG11_1_Pin, INPUT);   // set the digital input pin to input for the RG-11 Sensor
+  attachInterrupt(digitalPinToInterrupt(RG11_1_Pin), countRg1Tips, FALLING);     // attach interrupt handler to input pin.
+  // we trigger the interrupt on the voltage falling from 5V to GND
+
+  //Wind Speed
+  pinMode(WIND_SPEED_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(WIND_SPEED_PIN), countWindRotations, FALLING);     // attach interrupt handler to input pin.
+
+  sei();         //Enables interrupts
+
+  //Impedance Rainsensor
+  pinMode(M152_Pin, INPUT);
+  PciManager.registerListener(M152_Pin, &listener);
+  m152State = false;
+}
 
 // Main Loop ===================================================================
 
@@ -168,19 +167,19 @@ void loop()
   // ------------------------------------------------------------------
   //Read DHT22
 
-  hum0  = dht0.readHumidity();     //Luftfeuchte auslesen
-  temp0 = dht0.readTemperature();  //Temperatur auslesen
-  hum1  = dht1.readHumidity();     //Luftfeuchte auslesen
-  temp1 = dht1.readTemperature();  //Temperatur auslesen
+  hum0  += dht0.readHumidity();     //Luftfeuchte auslesen
+  temp0 += dht0.readTemperature();  //Temperatur auslesen
+  hum1  += dht1.readHumidity();     //Luftfeuchte auslesen
+  temp1 += dht1.readTemperature();  //Temperatur auslesen
 
   // ------------------------------------------------------------------
   //READ RG11
 
   cli();         //Disable interrupts
 
-  if(tipCount != lastCount) {
-    lastCount = tipCount;
-    totalRainfall = tipCount * Bucket_Size_1;
+  if(tipCounterRg1 != lastCountRg1) {
+    lastCountRg1 = tipCounterRg1;
+    totalRainfallRg1 = tipCounterRg1 * Bucket_Size_1;
   }
 
   sei();         //Enables interrupts
@@ -194,7 +193,7 @@ void loop()
   //Read Wind Direction
 
   int sensorValue = analogRead(WIND_DIRECTION_PIN);
-  windDirection = map(sensorValue, 1, 1024, 1, 5000);
+  windDirection += map(sensorValue, 1, 1024, 1, 5000);
 
   // ------------------------------------------------------------------
   //Write Data to serial every second
@@ -205,28 +204,36 @@ void loop()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root["time"]            = (millis() - startupTime)/1000; //in s
-    root["cycles"]          = cycles;
+    root["time"]    = (millis() - startupTime)/1000; //in s
+    root["cycles"]  = cycles;
 
-    root["humidity_0"]      = hum0;
-    root["temperature_0"]   = temp0;
-    root["humidity_1"]      = hum1;
-    root["temperature_1"]   = temp1;
+    root["humidity0"]    = hum0/cycles;
+    root["temperature0"] = temp0/cycles;
+    root["humidity1"]    = hum1/cycles;
+    root["temperature1"] = temp1/cycles;
 
-    root["tipCount"]       = tipCount;
-    root["tot_rainfall"]    = totalRainfall;
-    root["M152_state"]      = m152State;
-    root["m152Count"]      = m152Count;
+    root["tipCountRg1"]         = tipCounterRg1;
+    root["totRainfallRg1"]      = totalRainfallRg1/cycles;
+    root["M152State"]           = m152State;
+    root["m152Counter"]         = m152Counter;
     root["anemometerFrequency"] = anemometerFrequency;
-    root["wind_speed"]      = windSpeed;
-    root["windDirection"]  = windDirection;
+    root["windSpeed"]           = windSpeed;
+    root["windDirection"]       = windDirection/cycles;
 
     root.printTo(Serial);
     Serial.println();
-    cycles = 0;
 
-    // ------------------------------------------------------------------
+    //Reset values to make sure the output is not comulative:
+    cycles  = 0;
+    hum0    = 0;
+    temp0   = 0;
+    hum1    = 0;
+    temp1   = 0;
+    tipCounterRg1 = 0;
+    windDirection = 0;
+
     //READ M152
-    m152State = digitalRead(M152_Pin) != HIGH ? true : false;
+    m152State   = digitalRead(M152_Pin) != HIGH ? true : false;
+    m152Counter = 0;
   }
 }
