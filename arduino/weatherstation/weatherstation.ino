@@ -3,11 +3,13 @@
 #include <PciManager.h>
 #include <PciListenerImp.h>
 
+
+// Pin Definitions =============================================================
+
 //DHT22 Temp/Hum Sensor
 #define DHT0PIN 9
 #define DHT1PIN 11
 #define DHTTYPE DHT22 //DHT11, DHT21, DHT22
-
 
 //RG11 RainSensor 1 in tipping bucket mode
 #define RG11_1_Pin 3
@@ -19,7 +21,6 @@
 
 //kemo M152 rainsensor in binary mode
 #define M152_Pin 5
-
 
 //Wind Sensor
 #define WIND_SPEED_PIN 2
@@ -80,7 +81,9 @@ void countM152PulseChange(byte changeKind) {
 
 PciListenerImp listener(M152_Pin, countM152PulseChange);
 
-// Interrrupt handler routine that is triggered when the rg-11 detects rain
+// Interrupt Functions ========================================================
+
+// Interrrupt handler: rg-11 detects rain
 void rgisr ()   {
 
    if ((millis() - tipContactTime) > 15 ) {  // debounce of sensor signal
@@ -90,15 +93,16 @@ void rgisr ()   {
 }
 // end of rg-11 rain detection interrupt handler
 
-
-// Interrrupt handler routine that is triggered when the anemometer is rotating
+// Interrrupt handler: routine that is triggered when the anemometer is rotating
 void windisr ()   {
   if ((millis() - windContactTime) > 5 ) {  // debounce of sensor signal
       windCount++;
       windContactTime = millis();
   }
 }
-// end of rg-11 rain detection interrupt handler
+// end of anemometer interrupt handler
+
+// Setup =======================================================================
 
 void setup()
 {
@@ -152,6 +156,9 @@ void measureWindSpeed(int wind_measure_time)
 
   return;
 }
+
+
+// Main Loop ===================================================================
 
 void loop()
 {
