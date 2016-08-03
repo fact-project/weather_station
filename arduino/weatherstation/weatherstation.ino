@@ -43,25 +43,34 @@ volatile unsigned long m152Counter;     // contact counter for interrupt routine
 volatile unsigned long m152ContactTime;  // Timer to manage any contact bounce in interrupt routine
 
 //Rain Sensor variables
-long lastCountRg1;
-float totalRainfallRg1;
-bool m152State = false;
+long lastCountRg1      = 0;
+bool m152State         = false;
+float totalRainfallRg1 = 0.0;
 
-//Temperatur Sensor variables
-float hum0;
-float temp0;
-float hum1;
-float temp1;
+//Humidity variables
+float hum0 = 0.0;
+float hum1 = 0.0;
+float hum2 = 0.0;
+float hum3 = 0.0;
+float hum4 = 0.0;
+
+//Temperatur variables
+float temp0 = 0.0;
+float temp1 = 0.0;
+float temp2 = 0.0;
+float temp3 = 0.0;
+float temp4 = 0.0;
+
 
 //Windsensor variables
-float anemometerFrequency = 0.;
-float windDirection = 0;
-float windSpeed = 0.;
-float windMeasureDuration = 0;
+float anemometerFrequency = 0.0;
+float windDirection       = 0.0;
+float windSpeed           = 0.0;
+float windMeasureDuration = 0.0;
 
 //Time variables
-unsigned long startupTime = 0;
-unsigned long lastWriteTime = 0;
+unsigned long startupTime         = 0;
+unsigned long lastWriteTime       = 0;
 unsigned long lastWindMeasureTime = 0;
 
 int lastWindSpeedPinStatus = HIGH;
@@ -70,6 +79,9 @@ int lastWindSpeedPinStatus = HIGH;
 
 DHT dht0(DHT0PIN, DHTTYPE);
 DHT dht1(DHT1PIN, DHTTYPE);
+// DHT dht2(DHT1PIN, DHTTYPE);
+// DHT dht3(DHT1PIN, DHTTYPE);
+// DHT dht4(DHT1PIN, DHTTYPE);
 
 void measureWindSpeed(int wind_measure_time)
 {
@@ -139,6 +151,9 @@ void setup()
   //Temperature and Humidity Sensors
   dht0.begin();
   dht1.begin();
+  // dht2.begin();
+  // dht3.begin();
+  // dht4.begin();
 
   //Optical Rainsensor: RG11
   pinMode(RG11_1_Pin, INPUT);   // set the digital input pin to input for the RG-11 Sensor
@@ -168,9 +183,16 @@ void loop()
   //Read DHT22
 
   hum0  += dht0.readHumidity();     //Luftfeuchte auslesen
-  temp0 += dht0.readTemperature();  //Temperatur auslesen
   hum1  += dht1.readHumidity();     //Luftfeuchte auslesen
+  // hum2  += dht2.readHumidity();     //Luftfeuchte auslesen
+  // hum3  += dht3.readHumidity();     //Luftfeuchte auslesen
+  // hum4  += dht4.readHumidity();     //Luftfeuchte auslesen
+
+  temp0 += dht0.readTemperature();  //Temperatur auslesen
   temp1 += dht1.readTemperature();  //Temperatur auslesen
+  // temp2 += dht2.readTemperature();  //Temperatur auslesen
+  // temp3 += dht3.readTemperature();  //Temperatur auslesen
+  // temp4 += dht4.readTemperature();  //Temperatur auslesen
 
   // ------------------------------------------------------------------
   //READ RG11
@@ -207,10 +229,17 @@ void loop()
     root["time"]    = (millis() - startupTime)/1000; //in s
     root["cycles"]  = cycles;
 
-    root["humidity0"]    = hum0/cycles;
+    root["humidity0"] = hum0/cycles;
+    root["humidity1"] = hum1/cycles;
+    root["humidity2"] = hum2/cycles;
+    root["humidity3"] = hum3/cycles;
+    root["humidity4"] = hum4/cycles;
+
     root["temperature0"] = temp0/cycles;
-    root["humidity1"]    = hum1/cycles;
     root["temperature1"] = temp1/cycles;
+    root["temperature2"] = temp2/cycles;
+    root["temperature3"] = temp3/cycles;
+    root["temperature4"] = temp4/cycles;
 
     root["tipCountRg1"]         = tipCounterRg1;
     root["totRainfallRg1"]      = totalRainfallRg1/cycles;
@@ -225,12 +254,21 @@ void loop()
 
     //Reset values to make sure the output is not comulative:
     cycles  = 0;
+
     hum0    = 0;
-    temp0   = 0;
     hum1    = 0;
+    hum2    = 0;
+    hum3    = 0;
+    hum4    = 0;
+
+    temp0   = 0;
     temp1   = 0;
-    tipCounterRg1 = 0;
+    temp2   = 0;
+    temp3   = 0;
+    temp4   = 0;
+
     windDirection = 0;
+    tipCounterRg1 = 0;
 
     //READ M152
     m152State   = digitalRead(M152_Pin) != HIGH ? true : false;
