@@ -17,7 +17,7 @@
 
 //RG11 RainSensor 2 in tipping bucket mode
 #define RG11_2_Pin 4
-#define Bucket_Size_1_2 0.01
+#define Bucket_Size_2 0.01
 
 //kemo M152 rainsensor in binary mode
 #define M152_Pin 5
@@ -35,6 +35,8 @@ int cycles = 0;
 
 volatile unsigned long tipCounterRg1;     // bucket tip counter
 volatile unsigned long tipContactTimeRg1;  // Timer to manage any contact bounce in interrupt routine
+volatile unsigned long tipCounterRg2;     // bucket tip counter
+volatile unsigned long tipContactTimeRg2;  // Timer to manage any contact
 
 volatile unsigned long windCount;     // anemometer counter
 volatile unsigned long windContactTime;  // Timer to manage any contact bounce in interrupt routine
@@ -44,8 +46,10 @@ volatile unsigned long m152ContactTime;  // Timer to manage any contact bounce i
 
 //Rain Sensor variables
 long lastCountRg1      = 0;
-bool m152State         = false;
+long lastCountRg2      = 0;
 float totalRainfallRg1 = 0.0;
+float totalRainfallRg2 = 0.0;
+bool m152State         = false;
 
 //Humidity variables
 float hum0 = 0.0;
@@ -114,7 +118,7 @@ PciListenerImp listener(M152_Pin, countM152PulseChange);
 
 // Interrupt Functions ========================================================
 
-// Interrrupt handler: rg-11 detects rain
+// Interrrupt handler: rg-11_1 detects rain
 void countRg1Tips ()   {
 
    if ((millis() - tipContactTimeRg1) > 15 ) {  // debounce of sensor signal
@@ -122,7 +126,15 @@ void countRg1Tips ()   {
       tipContactTimeRg1 = millis();
    }
 }
-// end of rg-11 rain detection interrupt handler
+
+// Interrrupt handler: rg-11_2 detects rain
+void countRg2Tips ()   {
+
+   if ((millis() - tipContactTimeRg2) > 15 ) {  // debounce of sensor signal
+      tipCounterRg2++;
+      tipContactTimeRg2 = millis();
+   }
+}
 
 // Interrrupt handler: routine that is triggered when the anemometer is rotating
 void countWindRotations ()   {
@@ -131,7 +143,7 @@ void countWindRotations ()   {
       windContactTime = millis();
   }
 }
-// end of anemometer interrupt handler
+
 
 // Setup =======================================================================
 
@@ -159,6 +171,10 @@ void setup()
   pinMode(RG11_1_Pin, INPUT);   // set the digital input pin to input for the RG-11 Sensor
   attachInterrupt(digitalPinToInterrupt(RG11_1_Pin), countRg1Tips, FALLING);     // attach interrupt handler to input pin.
   // we trigger the interrupt on the voltage falling from 5V to GND
+
+  // pinMode(RG11_2_Pin, INPUT);   // set the digital input pin to input for the
+  // attachInterrupt(digitalPinToInterrupt(RG11_2_Pin), countRg2Tips, FALLING);
+
 
   //Wind Speed
   pinMode(WIND_SPEED_PIN, INPUT);
@@ -195,13 +211,19 @@ void loop()
   // temp4 += dht4.readTemperature();  //Temperatur auslesen
 
   // ------------------------------------------------------------------
-  //READ RG11
 
   cli();         //Disable interrupts
 
+  //READ RG11_1
   if(tipCounterRg1 != lastCountRg1) {
     lastCountRg1 = tipCounterRg1;
     totalRainfallRg1 = tipCounterRg1 * Bucket_Size_1;
+  }
+
+  //READ RG11_2
+  if(tipCounterRg2 != lastCountRg2) {
+    lastCountRg2 = tipCounterRg2;
+    totalRainfallRg2 = tipCounterRg2 * Bucket_Size_2;
   }
 
   sei();         //Enables interrupts
@@ -243,6 +265,8 @@ void loop()
 
     root["tipCountRg1"]         = tipCounterRg1;
     root["totRainfallRg1"]      = totalRainfallRg1/cycles;
+    root["tipCountRg2"]         = tipCounterRg2;
+    root["totRainfallRg2"]      = totalRainfallRg2/cycles;
     root["M152State"]           = m152State;
     root["m152Counter"]         = m152Counter;
     root["anemometerFrequency"] = anemometerFrequency;
@@ -255,19 +279,19 @@ void loop()
     //Reset values to make sure the output is not comulative:
     cycles  = 0;
 
-    hum0    = 0;
-    hum1    = 0;
-    hum2    = 0;
-    hum3    = 0;
-    hum4    = 0;
+    hum0    = 0.0;
+    hum1    = 0.0;
+    hum2    = 0.0;
+    hum3    = 0.0;
+    hum4    = 0.0;
 
-    temp0   = 0;
-    temp1   = 0;
-    temp2   = 0;
-    temp3   = 0;
-    temp4   = 0;
+    temp0   = 0.0;
+    temp1   = 0.0;
+    temp2   = 0.0;
+    temp3   = 0.0;
+    temp4   = 0.0;
 
-    windDirection = 0;
+    windDirection = 0.0;
     tipCounterRg1 = 0;
 
     //READ M152
