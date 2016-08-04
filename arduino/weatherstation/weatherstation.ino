@@ -245,7 +245,7 @@ void loop()
   if( millis() - lastWriteTime > DATA_FREQ){
     lastWriteTime = millis();
 
-    StaticJsonBuffer<200> jsonBuffer;
+    StaticJsonBuffer<300> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
     root["time"]    = (millis() - startupTime)/1000; //in s
