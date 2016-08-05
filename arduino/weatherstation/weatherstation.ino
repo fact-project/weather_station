@@ -7,11 +7,14 @@
 // Pin Definitions =============================================================
 
 //DHT22 Temp/Hum Sensor
-#define DHT0PIN 9
-#define DHT1PIN 11
+#define DHT0PIN 8
+#define DHT1PIN 9
+#define DHT2PIN 10
+#define DHT3PIN 11
+#define DHT4PIN 12
 #define DHTTYPE DHT22 //DHT11, DHT21, DHT22
 
-//RG11 RainSensor 1 in tipping bucket mode
+//RG11 RainSensor 1 in drop detection mode mode
 #define RG11_1_Pin 3
 #define Bucket_Size_1 0.01
 
@@ -25,16 +28,22 @@
 //Wind Sensor
 #define WIND_SPEED_PIN 2
 #define WIND_SPEED_MEASURE_TIME 10000 //ms, every 10s, should stay like this
-#define WIND_DIRECTION_PIN 0
+#define WIND_DIRECTION_PIN 0//Analog Pin
 
 #define DATA_FREQ 1000 //ms
+#define COUNTER_RESET_DELAY 700 //ms
 
 // Global variables ============================================================
 
 int cycles = 0;
 
-volatile unsigned long tipCounterRg1;     // bucket tip counter
-volatile unsigned long tipContactTimeRg1;  // Timer to manage any contact bounce in interrupt routine
+volatile unsigned long rg1State;
+volatile unsigned long dropCounterRg1;     // bucket tip counter
+volatile unsigned long dropPulseLengthRg1;  // drop size determined as pulse length
+volatile unsigned long dropContactTimeRg1;  // Timer to manage any contact bounce in interrupt routine
+volatile unsigned long dropStartTimeRg1 = 0;  // Timer to manage any contact bounce in interrupt routine
+
+
 volatile unsigned long tipCounterRg2;     // bucket tip counter
 volatile unsigned long tipContactTimeRg2;  // Timer to manage any contact
 
@@ -47,6 +56,7 @@ volatile unsigned long m152ContactTime;  // Timer to manage any contact bounce i
 //Rain Sensor variables
 long lastCountRg1      = 0;
 long lastCountRg2      = 0;
+float averagedDropSizeRg1 = 0.0;
 float totalRainfallRg1 = 0.0;
 float totalRainfallRg2 = 0.0;
 bool m152State         = false;
@@ -76,6 +86,7 @@ float windMeasureDuration = 0.0;
 unsigned long startupTime         = 0;
 unsigned long lastWriteTime       = 0;
 unsigned long lastWindMeasureTime = 0;
+unsigned long lastCounterReset    = 0;
 
 int lastWindSpeedPinStatus = HIGH;
 
@@ -83,9 +94,9 @@ int lastWindSpeedPinStatus = HIGH;
 
 DHT dht0(DHT0PIN, DHTTYPE);
 DHT dht1(DHT1PIN, DHTTYPE);
-// DHT dht2(DHT1PIN, DHTTYPE);
-// DHT dht3(DHT1PIN, DHTTYPE);
-// DHT dht4(DHT1PIN, DHTTYPE);
+DHT dht2(DHT2PIN, DHTTYPE);
+DHT dht3(DHT3PIN, DHTTYPE);
+DHT dht4(DHT4PIN, DHTTYPE);
 
 void measureWindSpeed(int wind_measure_time)
 {
@@ -118,22 +129,27 @@ PciListenerImp listener(M152_Pin, countM152PulseChange);
 
 // Interrupt Functions ========================================================
 
-// Interrrupt handler: rg-11_1 detects rain
-void countRg1Tips ()   {
-
-   if ((millis() - tipContactTimeRg1) > 15 ) {  // debounce of sensor signal
-      tipCounterRg1++;
-      tipContactTimeRg1 = millis();
-   }
+// Interrrupt handler: rg-11_1 detects rain in drop detection mode
+void countRg1Drops ()   {
+  
+  rg1State = digitalRead(RG11_1_Pin);
+  if (rg1State == LOW) {
+    dropStartTimeRg1 = millis();
+  }
+  else if (rg1State == HIGH) {
+    dropPulseLengthRg1 += millis() - dropStartTimeRg1;
+    dropCounterRg1++;
+  }
+  dropContactTimeRg1 = millis();
 }
 
 // Interrrupt handler: rg-11_2 detects rain
 void countRg2Tips ()   {
 
-   if ((millis() - tipContactTimeRg2) > 15 ) {  // debounce of sensor signal
-      tipCounterRg2++;
-      tipContactTimeRg2 = millis();
-   }
+  if ((millis() - tipContactTimeRg2) > 15 ) {  // debounce of sensor signal
+    tipCounterRg2++;
+    tipContactTimeRg2 = millis();
+  }
 }
 
 // Interrrupt handler: routine that is triggered when the anemometer is rotating
@@ -155,7 +171,7 @@ void setup()
   //global constants
   cycles = 0;
   lastCountRg1 = 0;
-  tipCounterRg1 = 0;
+  dropCounterRg1 = 0;
   totalRainfallRg1 = 0;
   windCount = 0;
 
@@ -169,11 +185,11 @@ void setup()
 
   //Optical Rainsensor: RG11
   pinMode(RG11_1_Pin, INPUT);   // set the digital input pin to input for the RG-11 Sensor
-  attachInterrupt(digitalPinToInterrupt(RG11_1_Pin), countRg1Tips, FALLING);     // attach interrupt handler to input pin.
+  attachInterrupt(digitalPinToInterrupt(RG11_1_Pin), countRg1Drops, CHANGE);     // attach interrupt handler to input pin.
   // we trigger the interrupt on the voltage falling from 5V to GND
 
-  // pinMode(RG11_2_Pin, INPUT);   // set the digital input pin to input for the
-  // attachInterrupt(digitalPinToInterrupt(RG11_2_Pin), countRg2Tips, FALLING);
+//  pinMode(RG11_2_Pin, INPUT);   // set the digital input pin to input for the
+//  attachInterrupt(digitalPinToInterrupt(RG11_2_Pin), countRg2Tips, FALLING);
 
 
   //Wind Speed
@@ -200,24 +216,25 @@ void loop()
 
   hum0  += dht0.readHumidity();     //Luftfeuchte auslesen
   hum1  += dht1.readHumidity();     //Luftfeuchte auslesen
-  // hum2  += dht2.readHumidity();     //Luftfeuchte auslesen
-  // hum3  += dht3.readHumidity();     //Luftfeuchte auslesen
-  // hum4  += dht4.readHumidity();     //Luftfeuchte auslesen
+  hum2  += dht2.readHumidity();     //Luftfeuchte auslesen
+  hum3  += dht3.readHumidity();     //Luftfeuchte auslesen
+  hum4  += dht4.readHumidity();     //Luftfeuchte auslesen
 
   temp0 += dht0.readTemperature();  //Temperatur auslesen
   temp1 += dht1.readTemperature();  //Temperatur auslesen
-  // temp2 += dht2.readTemperature();  //Temperatur auslesen
-  // temp3 += dht3.readTemperature();  //Temperatur auslesen
-  // temp4 += dht4.readTemperature();  //Temperatur auslesen
+  temp2 += dht2.readTemperature();  //Temperatur auslesen
+  temp3 += dht3.readTemperature();  //Temperatur auslesen
+  temp4 += dht4.readTemperature();  //Temperatur auslesen
 
   // ------------------------------------------------------------------
 
   cli();         //Disable interrupts
 
   //READ RG11_1
-  if(tipCounterRg1 != lastCountRg1) {
-    lastCountRg1 = tipCounterRg1;
-    totalRainfallRg1 = tipCounterRg1 * Bucket_Size_1;
+  if(dropCounterRg1 != lastCountRg1) {
+    lastCountRg1 = dropCounterRg1;
+    averagedDropSizeRg1 = float(dropPulseLengthRg1)/dropCounterRg1;
+    totalRainfallRg1 = dropCounterRg1 * Bucket_Size_1;
   }
 
   //READ RG11_2
@@ -263,13 +280,14 @@ void loop()
     root["temperature3"] = temp3/cycles;
     root["temperature4"] = temp4/cycles;
 
-    root["tipCountRg1"]         = tipCounterRg1;
-    root["totRainfallRg1"]      = totalRainfallRg1/cycles;
-    root["tipCountRg2"]         = tipCounterRg2;
-    root["totRainfallRg2"]      = totalRainfallRg2/cycles;
-    root["M152State"]           = m152State;
+    root["rg1DropCount"]        = dropCounterRg1;
+    root["rg1meanDropSize"]     = averagedDropSizeRg1;
+    root["rg1TotRainfall"]      = totalRainfallRg1/cycles;
+    root["rg2TipCount"]         = tipCounterRg2;
+    root["rg2TotRainfall"]      = totalRainfallRg2/cycles;
+    root["m152State"]           = m152State;
     root["m152Counter"]         = m152Counter;
-    root["anemometerFrequency"] = anemometerFrequency;
+    root["windAnemometerFrequency"] = anemometerFrequency;
     root["windSpeed"]           = windSpeed;
     root["windDirection"]       = windDirection/cycles;
 
@@ -291,11 +309,27 @@ void loop()
     temp3   = 0.0;
     temp4   = 0.0;
 
-    windDirection = 0.0;
-    tipCounterRg1 = 0;
+    windDirection  = 0.0;
 
-    //READ M152
-    m152State   = digitalRead(M152_Pin) != HIGH ? true : false;
-    m152Counter = 0;
   }
+  // ------------------------------------------------------------------
+  // Reset Dropcounters
+  if( millis() - lastCounterReset > COUNTER_RESET_DELAY+DATA_FREQ){
+    lastCounterReset = millis();
+
+    if ( digitalRead(RG11_1_Pin) == HIGH ){
+      dropCounterRg1      = 0;
+      dropPulseLengthRg1  = 0;
+    }
+
+    tipCounterRg2  = 0;
+    
+
+        //READ M152
+    m152State   = digitalRead(M152_Pin) != HIGH ? true : false;
+    if (!m152State){
+      m152Counter = 0;  
+    }
+  }
+  // ------------------------------------------------------------------
 }
