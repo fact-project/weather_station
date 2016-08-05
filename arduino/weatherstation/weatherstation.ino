@@ -99,7 +99,8 @@ DHT dht3(DHT3PIN, DHTTYPE);
 DHT dht4(DHT4PIN, DHTTYPE);
 
 void measureWindSpeed(int wind_measure_time)
-{
+{ 
+  
   cli();         //Disable interrupts
 
   if ( millis() - lastWindMeasureTime > wind_measure_time ) {
@@ -108,6 +109,10 @@ void measureWindSpeed(int wind_measure_time)
       anemometerFrequency = float(windCount)/windMeasureDuration; //pulses per time in s
       windSpeed = anemometerFrequency*24/10;
       windCount = 0;
+    }
+    else {
+      anemometerFrequency = 0;
+      windSpeed = 0;
     }
     lastWindMeasureTime = millis();
   }
