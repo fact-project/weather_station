@@ -20,7 +20,7 @@
 
 //RG11 RainSensor 2 in tipping bucket mode
 #define RG11_2_Pin 4
-#define Bucket_Size_2 0.01
+#define Bucket_Size_2 0.001
 
 //kemo M152 rainsensor in binary mode
 #define M152_Pin 5
@@ -107,13 +107,12 @@ void measureWindSpeed(int wind_measure_time)
     if ( windCount > 0 ) {
       windMeasureDuration = (millis() - lastWindMeasureTime)/1000.; //in s
       anemometerFrequency = float(windCount)/windMeasureDuration; //pulses per time in s
-      windSpeed = anemometerFrequency*24/10;
       windCount = 0;
     }
     else {
       anemometerFrequency = 0;
-      windSpeed = 0;
     }
+    windSpeed = anemometerFrequency*24/10;
     lastWindMeasureTime = millis();
   }
 
@@ -130,7 +129,17 @@ void countM152PulseChange(byte changeKind) {
   }
 }
 
-PciListenerImp listener(M152_Pin, countM152PulseChange);
+// Interrrupt handler: rg-11_2 detects rain
+void countRg2PciTips (byte changeKind)   {
+
+  if ((millis() - tipContactTimeRg2) > 15 && changeKind == 0) {  // debounce of sensor signal
+    tipCounterRg2++;
+    tipContactTimeRg2 = millis();
+  }
+}
+
+PciListenerImp listener1(M152_Pin, countM152PulseChange);
+PciListenerImp listener2(RG11_2_Pin, countRg2PciTips);
 
 // Interrupt Functions ========================================================
 
@@ -195,6 +204,8 @@ void setup()
 
 //  pinMode(RG11_2_Pin, INPUT);   // set the digital input pin to input for the
 //  attachInterrupt(digitalPinToInterrupt(RG11_2_Pin), countRg2Tips, FALLING);
+  pinMode(RG11_2_Pin, INPUT);
+  PciManager.registerListener(RG11_2_Pin, &listener2);
 
 
   //Wind Speed
@@ -205,7 +216,9 @@ void setup()
 
   //Impedance Rainsensor
   pinMode(M152_Pin, INPUT);
-  PciManager.registerListener(M152_Pin, &listener);
+  PciManager.registerListener(M152_Pin, &listener1);
+
+  
   m152State = false;
 }
 
