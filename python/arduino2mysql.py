@@ -54,8 +54,12 @@ def main():
                 d = json.loads(data)
             except (KeyboardInterrupt, SystemExit):
                 raise
+
+            except (ValueError):
+                logging.error("Data not readable")
+
             except:
-                print("Data not readable")
+                logging.exception("Something unexpected happend")
             if d:
                 for key in d:
                     if not np.isfinite(d[key]):
