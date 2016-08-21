@@ -99,8 +99,8 @@ DHT dht3(DHT3PIN, DHTTYPE);
 DHT dht4(DHT4PIN, DHTTYPE);
 
 void measureWindSpeed(int wind_measure_time)
-{ 
-  
+{
+
   cli();         //Disable interrupts
 
   if ( millis() - lastWindMeasureTime > wind_measure_time ) {
@@ -145,7 +145,7 @@ PciListenerImp listener2(RG11_2_Pin, countRg2PciTips);
 
 // Interrrupt handler: rg-11_1 detects rain in drop detection mode
 void countRg1Drops ()   {
-  
+
   rg1State = digitalRead(RG11_1_Pin);
   if (rg1State == LOW) {
     dropStartTimeRg1 = millis();
@@ -218,7 +218,7 @@ void setup()
   pinMode(M152_Pin, INPUT);
   PciManager.registerListener(M152_Pin, &listener1);
 
-  
+
   m152State = false;
 }
 
@@ -251,7 +251,11 @@ void loop()
   //READ RG11_1
   if(dropCounterRg1 != lastCountRg1) {
     lastCountRg1 = dropCounterRg1;
-    averagedDropSizeRg1 = float(dropPulseLengthRg1)/dropCounterRg1;
+    if (dropCounterRg1 > 0){
+      averagedDropSizeRg1 = float(dropPulseLengthRg1)/dropCounterRg1;
+    } else {
+      averagedDropSizeRg1 = 0;
+    }
     totalRainfallRg1 = dropCounterRg1 * Bucket_Size_1;
   }
 
@@ -341,12 +345,12 @@ void loop()
     }
 
     tipCounterRg2  = 0;
-    
+
 
         //READ M152
     m152State   = digitalRead(M152_Pin) != HIGH ? true : false;
     if (!m152State){
-      m152Counter = 0;  
+      m152Counter = 0;
     }
   }
   // ------------------------------------------------------------------
