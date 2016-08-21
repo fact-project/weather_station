@@ -8,9 +8,10 @@ import numpy as np
 import pandas as pd
 from pprint import PrettyPrinter
 
-from model import Weather, db
+from model import FactWeather, db
 from IPython import embed
 from peewee import OperationalError
+import peewee as pw
 import logging
 
 
@@ -56,29 +57,38 @@ def main():
             except:
                 print("Data not readable")
             if d:
-                w = Weather(
-                    cycles=d["cycles"],
-                    humidity0=d["humidity0"],
-                    humidity1=d["humidity1"],
-                    m152_counter=d["m152Counter"],
-                    m152_state=d["m152State"],
-                    rg1_drop_count=d["rg1DropCount"],
-                    rg1_total_rainfall=d["rg1TotRainfall"],
-                    rg1_mean_drop_size=d["rg1meanDropSize"],
-                    rg2_tip_count=d["rg2TipCount"],
-                    rg2_total_rainfall=d["rg2TotRainfall"],
-                    temperature0=d["temperature0"],
-                    temperature1=d["temperature1"],
-                    board_time=d["time"],
-                    timestamp=datetime.datetime.utcnow().isoformat(),
-                    wind_direction=convertVoltage2WindDirection(d["windDirection"]/1000.0),
-                    wind_speed=d["windSpeed"],
-                )
+                for key in d:
+                    if not np.isfinite(d[key]):
+                        d[key] = None
+                d["windDirection"] = convertVoltage2WindDirection(d["windDirection"]/1000.0)
+                d["time_stamp"] = datetime.datetime.utcnow().isoformat()
+
                 try:
-                    w.save()
-                except OperationalError:
-                    logging.exception()
-                    db.connect()
+                    w = FactWeather(
+                        cycles=d["cycles"],
+                        humidity0=d["humidity0"],
+                        humidity1=d["humidity2"],
+                        m152_counter=d["m152Counter"],
+                        m152_state=d["m152State"],
+                        rg1_drop_count=d["rg1DropCount"],
+                        rg1_total_rainfall=d["rg1TotRainfall"],
+                        rg1_mean_drop_size=d["rg1meanDropSize"],
+                        rg2_tip_count=d["rg2TipCount"],
+                        rg2_total_rainfall=d["rg2TotRainfall"],
+                        temperature0=d["temperature0"],
+                        temperature1=d["temperature1"],
+                        board_time=d["time"],
+                        timestamp=d["time_stamp"],
+                        wind_direction=d["windDirection"],
+                        wind_speed=d["windSpeed"],
+                    )
+                    try:
+                        w.save()
+                    except OperationalError:
+                        logging.error("Saving to DB Failed, Reconnecting")
+                        db.connect()
+                except:
+                    logging.exception("Saving data to model failed")
 
                 pp.pprint(d)
 
