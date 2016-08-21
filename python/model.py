@@ -23,4 +23,4 @@ class FactWeather(Model):
     wind_speed = FloatField(null = True)
 
     class Meta:
-        database = db # This model uses the "people.db" database.
+        database = db
