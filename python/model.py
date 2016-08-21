@@ -2,7 +2,7 @@ from peewee import MySQLDatabase, Model, IntegerField, FloatField, BooleanField,
 
 db = MySQLDatabase("factdata")
 
-class Weather(Model):
+class FactWeather(Model):
     cycles =  IntegerField()
     humidity0 = FloatField()
     humidity1 = FloatField()
