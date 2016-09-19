@@ -18,6 +18,7 @@ The design for our weatherstation is based un this instruction: http://fluuux.de
 
 
 ## Rainsensor: Hydreon RG 11
+Manual: http://rainsensors.com/2015/documents/rg-11_instructions.pdf
 Tipping bucket example: http://cactus.io/hookups/weather/rain/hydreon/hookup-arduino-to-hydreon-rg-11-rain-sensor
 
 In tipping bucket mode 0.01mm the Sensor produces a 100ms pulse for each detected bucket switch.
