@@ -71,7 +71,7 @@ def main():
                     w = FactWeather(
                         cycles=d["cycles"],
                         humidity0=d["humidity0"],
-                        humidity1=d["humidity2"],
+                        humidity1=d["humidity1"],
                         m152_counter=d["m152Counter"],
                         m152_state=d["m152State"],
                         rg1_drop_count=d["rg1DropCount"],
