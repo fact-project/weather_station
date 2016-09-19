@@ -64,7 +64,7 @@ directions = {0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 
 
 From the Resistance you can calculate the expected direction voltage as follows:
 
-U_i = U_0 * (R_0/R_i + 1)
+U_i = U_0 / (R_0/R_i + 1)
 
 # Software
 
