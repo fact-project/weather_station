@@ -95,6 +95,7 @@ def main():
                     logging.exception("Saving data to model failed")
 
                 pp.pprint(d)
+                print()
 
 
 if __name__ == "__main__":
