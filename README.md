@@ -74,8 +74,8 @@ The following is the pin-allocation for arduino mega
 | --- | ---   | ---   |
 | 2   | wind_speed | interrupt |
 | 3   | RG11_1 | interrupt |
-| 4   | RG11_2 | interrupt |
-| 5   | M152 | interrupt |
+| 18   | RG11_2 | interrupt |
+| 19   | M152 | interrupt |
 | A0  | winf_direction | analoge |
 | 8   | DHT22_0 (onboard) | std. digital |
 | 9   | DHT22_1 (external | std. digital |
