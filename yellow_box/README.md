@@ -11,9 +11,13 @@ Two RG11 sensors exist, which are physically identical, but have different setti
 The readout box has two corresponding SUBD-9 male connectors:
 
 This side of the box should be connected to the sensor "RG11_1". Let's call this side the "one-side".
+
+One-side:
 <img src="https://cloud.githubusercontent.com/assets/8200858/24101400/8144cc04-0d78-11e7-95a9-7ad0621f1fc4.jpg" width="120">
 
 This side of the box should be connected to the sensor "RG11_2". Let's call it the "two-side".
+
+Two-side:
 <img src="https://cloud.githubusercontent.com/assets/8200858/24101401/8145f566-0d78-11e7-8015-11604c0e50a1.jpg" width="120">
 
 
