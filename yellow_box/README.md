@@ -29,8 +29,11 @@ In order to flash an (ArduinoEthernet)[https://www.arduino.cc/en/Main/ArduinoBoa
 you need an TTL to USB adaptor (like this one)[https://www.arduino.cc/en/Main/USBSerial].
 Most modern Arduino boards have the USB connector mounted, but on the fairly old ArduinoEthernet, they saved the space ... 
 
-In order to mount the adaptor you'll need to open the yellow box and remove the "two-side" (just pull it a bit up), to make some space for the adaptor. On this image:
+In order to mount the adaptor you'll need to open the yellow box and remove the "two-side" (just pull it a bit up), to make some space for the adaptor. 
+
+On this image:
 <img src="https://cloud.githubusercontent.com/assets/8200858/24101308/1b31a180-0d78-11e7-9fc2-43d13bd86607.jpg" width="400">
+
 One can see the box before we decided to add a connector for "RG11_2" as well. So the "two-side" was empty. One can easily pull it out and access the ArduinoEthernets SPI connector. 
 
 This image should help to understand what way around the adaptor needs to be
