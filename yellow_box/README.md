@@ -72,4 +72,14 @@ The normal arduino IDE is just crap for any serious attempt of writing software 
     board = ethernet
     framework = arduino
     upload_port = /dev/ttyACM0
+    
+    
+## How to chenge the IP address of the yellow Box?
+
+Just edit this line:
+https://github.com/fact-project/weather_station/blob/RG11_yellow_box/yellow_box/src/RG11.cpp#L11
+
+and build and flash the firmware.
+
+
 
