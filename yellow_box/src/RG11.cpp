@@ -8,7 +8,7 @@
 #include "RG11.h"
 
 byte mac[] = {0x02, 0xFA, 0xC7, 0x00, 0x00, 0x10};
-IPAddress ip(10, 0, 100, 155);
+IPAddress ip(161, 72, 130, 79);
 
 
 const int condensation_detector_pin = 2;
