@@ -2,11 +2,10 @@ import socket
 import time
 import struct
 from collections import namedtuple
-import numpy as np
 import logging
 import random
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 Report = namedtuple(
     'Report',
@@ -32,7 +31,11 @@ class YellowBox:
 
     def read(self):
         while True:
-            msg = struct.unpack("IIIIIIH", request(self.ip))
+            try:
+                msg = struct.unpack("IIIIIIH", request(self.ip))
+            except socket.timeout:
+                log.exception('timeout when reading from yellow box')
+                continue
             if msg[5] != self.time_between_updates_in_ms:
                 log.warn(
                     'yellow box time between updates is %f, expected was %f',
