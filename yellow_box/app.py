@@ -7,7 +7,9 @@ from yellow_box import YellowBox, YellowBoxMockup
 
 import click
 import socket
+import logging
 
+log = logging.getLogger(__name__)
 
 @click.command()
 @click.argument(
@@ -42,7 +44,7 @@ def send_to_dominik(report):
             data={report.__class__.__name__: msgpack.packb(report)}
         )
     except (requests.RequestException, socket.timeout):
-        pass
+        log.exception('could not write to Dominik')
 
 
 def save_to_file(report, file):
